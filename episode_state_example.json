@@ -1,0 +1,47 @@
+['ByteSize', 'Clear', 'ClearExtension', 'ClearField', 'CopyFrom', 'DESCRIPTOR', 'DiscardUnknownFields', 'Extensions', 'FindInitializationErrors', 'FromString', 'HasExtension', 'HasField', 'IsInitialized', 'ListFields', 'MergeFrom', 'MergeFromString', 'ParseFromString', 'RegisterExtension', 'SerializePartialToString', 'SerializeToString', 'SetInParent', 'UnknownFields', 'WhichOneof', '_CheckCalledFromGeneratedFile', '_SetListener', '__class__', '__deepcopy__', '__delattr__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__slots__', '__str__', '__subclasshook__', '__unicode__', '_extensions_by_name', '_extensions_by_number', 'state_action']
+episode= state_action {
+  time {
+    nanos: 10000000
+  }
+  base_position {
+    x: 2.300305943626804e-08
+    y: -0.00021500442927768223
+    z: -9.010925882096607e-06
+  }
+  base_orientation {
+    x: -0.029716595955419048
+    y: -0.03028790931208814
+    z: 0.20808441611401723
+  }
+  base_angular_vel {
+    x: -0.052189845814107065
+    y: -0.04592714271903781
+    z: -0.14930111896864717
+  }
+  motor_states {
+    angle: 0.2434669967942252
+    velocity: 0.009485762158390936
+    torque: 3.415520080386444
+    action: 0.07958672039266995
+  }
+  motor_states {
+    angle: -0.204475251689708
+    velocity: -0.09339798159305633
+    torque: 3.4881956662050713
+    action: 0.21500590402245592
+  }
+  motor_states {
+    angle: 0.2869221548851633
+    velocity: 0.1673498726198642
+    torque: 3.554716925505864
+    action: 0.19402919247080191
+  }
+  motor_states {
+    angle: -0.021284344551599558
+    velocity: -0.063820621130884
+    torque: 3.3898744176687563
+    action: 0.15804456524293187
+  }
+  info_valid: true
+}
+}
