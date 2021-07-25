@@ -184,28 +184,23 @@
 
 
 
-
-
-
-
-
   <link name="neck_1">
     <visual>
       <geometry>
-        <box size="0.1 0.1 1"/>
+        <box size="0.1 0.1 1.618"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -0.718"/>
       <material name="black"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.1 0.1 0.4"/>
+        <box size="0.1 0.1 1.618"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -0.718"/>
       <contact_coefficients mu="0.08" />
     </collision>
    <inertial>
-      <mass value="1"/>
+      <mass value="1.618"/>
       <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
     </inertial>
   </link>
@@ -213,25 +208,30 @@
 
   <joint name="gripper_joint_1" type="revolute">
     <parent link="chassis"/>
-    <child link="shoulder"/>
+    <child link="neck_1"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-1.57." upper="1.57" velocity="1000.0"/>
-    <origin rpy="0 0 0" xyz="0 0 1"/>
+    <origin rpy="3 0 0" xyz="0 0.618 1.1"/>
   </joint>
+
+
+
+
+
 
   <link name="neck_2">
     <visual>
       <geometry>
         <box size="0.1 0.1 1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
-      <material name="black"/>
+      <origin rpy="0 0 0" xyz="0 0 -.618"/>
+      <material name="blue"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.1 0.1 0.4"/>
+        <box size="0.1 0.1 1"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -.618"/>
       <contact_coefficients mu="0.08" />
     </collision>
    <inertial>
@@ -246,22 +246,27 @@
     <child link="neck_2"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-1.57." upper="1.57" velocity="1000.0"/>
-    <origin rpy="0 0 0" xyz="0 0 0.8"/>
+    <origin rpy="-1 0 0" xyz="0 0 -1.618"/>
   </joint>
+
+
+
+
+
 
   <link name="neck_3">
     <visual>
       <geometry>
-        <box size="0.1 0.1 1"/>
+        <box size="0.1 0.1 0.618"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -.518"/>
       <material name="black"/>
     </visual>
     <collision>
       <geometry>
-        <box size="0.1 0.1 0.4"/>
+        <box size="0.1 0.1 0.618"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -.518"/>
       <contact_coefficients mu="0.08" />
     </collision>
    <inertial>
@@ -276,18 +281,8 @@
     <child link="neck_3"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-1.57." upper="1.57" velocity="1000.0"/>
-    <origin rpy="0 0 0" xyz="0 0 0.6"/>
+    <origin rpy="0 0 0" xyz="0 0 -1"/>
   </joint>
-
-
-
-
-
-
-
-
-
-
 
 
 
