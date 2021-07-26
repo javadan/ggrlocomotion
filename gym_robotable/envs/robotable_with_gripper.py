@@ -26,6 +26,7 @@ MOTOR_NAMES = [
     "motor_front_left_leg_joint",
     "motor_back_right_leg_joint",
     "motor_back_left_leg_joint",
+    "gripper_joint_0", #base rotation
     "gripper_joint_1",
     "gripper_joint_2",
     "gripper_joint_3"
@@ -33,8 +34,9 @@ MOTOR_NAMES = [
 
 
 NUM_LOCO_MOTORS = 4
-NUM_GRIPPER_MOTORS = 3
+NUM_GRIPPER_MOTORS = 4
 
+_GRIPPER_JOINT_0_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_0")
 _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_1")
 _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_2")
 _GRIPPER_JOINT_3_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_3")
@@ -95,7 +97,7 @@ class Robotable(object):
     self._self_collision_enabled = self_collision_enabled
     self._motor_velocity_limit = motor_velocity_limit
     self._pd_control_enabled = pd_control_enabled
-    self._motor_direction = [1,1,1,1, 1,1,1]
+    self._motor_direction = [1,1,1,1, 1,1,1,1]
     self._observed_motor_torques = np.zeros(self.num_motors)
     self._applied_motor_torques = np.zeros(self.num_motors)
     self._max_force = 3.5
@@ -170,6 +172,9 @@ class Robotable(object):
         self._chassis_link_ids.append(joint_id)
       elif _MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
+      elif _GRIPPER_JOINT_0_MOTOR_NAME_PATTERN.match(joint_name):
+        self._motor_link_ids.append(joint_id)
+        self._gripper_link_ids.append(joint_id)
       elif _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
         self._gripper_link_ids.append(joint_id)
@@ -321,13 +326,15 @@ class Robotable(object):
                                                                    "_leg_joint"],
                                             self._motor_direction[leg_id] * 0, #* half_pi,
                                             targetVelocity=0)
+      print(leg_position)
 
     else:
-      neck_number = leg_id - 4
+      neck_number = leg_id - NUM_LOCO_MOTORS
       self._pybullet_client.resetJointState(self.quadruped,
-                                            self._joint_name_to_id["gripper_joint_" + str(neck_number + 1)],
+                                            self._joint_name_to_id["gripper_joint_" + str(neck_number)],
                                             self._motor_direction[leg_id] * half_pi/2,  # * half_pi,
                                             targetVelocity=0)
+      print(neck_number)
 
 #    if self._accurate_motor_model_enabled or self._pd_control_enabled:
       # Disable the default motor in pybullet.
