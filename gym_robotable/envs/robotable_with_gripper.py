@@ -1,4 +1,5 @@
-"""This file implements the functionalities of a minitaur using pybullet.
+"""This file implements the functionalities of a robotable with gripper, using pybullet.
+Adapted from minitaur
 
 """
 
@@ -14,8 +15,9 @@ import re
 
 import numpy as np
 from gym_robotable.envs import motor
+from gym_robotable.envs import transformations
 
-INIT_POSITION = [0, 0, .2]
+INIT_POSITION = [0, 0, .15]
 INIT_RACK_POSITION = [0, 0, 1]
 INIT_ORIENTATION = [0, 0, 0, 1]
 OVERHEAT_SHUTDOWN_TORQUE = 2.45
@@ -25,17 +27,20 @@ MOTOR_NAMES = [
     "motor_front_right_leg_joint",
     "motor_front_left_leg_joint",
     "motor_back_right_leg_joint",
-    "motor_back_left_leg_joint"
+    "motor_back_left_leg_joint",
+    "gripper_joint_0", #base rotation
+    "gripper_joint_1",
+    "gripper_joint_2",
+    "gripper_joint_3"
 ]
 
 
+
+
 NUM_LOCO_MOTORS = 4
-NUM_GRIPPER_MOTORS = 3
+NUM_GRIPPER_MOTORS = 4
 
-_GRIPPER_NECK_1_NAME_PATTERN = re.compile(r"neck_1")
-_GRIPPER_NECK_2_NAME_PATTERN = re.compile(r"neck_2")
-_GRIPPER_NECK_3_NAME_PATTERN = re.compile(r"neck_3")
-
+_GRIPPER_JOINT_0_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_0")
 _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_1")
 _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_2")
 _GRIPPER_JOINT_3_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_3")
@@ -48,6 +53,10 @@ _MOTOR_NAME_PATTERN = re.compile(r"motor\D*joint")
 
 SENSOR_NOISE_STDDEV = (0.0, 0.0, 0.0, 0.0, 0.0)
 TWO_PI = 2 * math.pi
+
+
+
+
 
 
 def MapToMinusPiToPi(angles):
@@ -66,6 +75,9 @@ def MapToMinusPiToPi(angles):
     elif mapped_angles[i] < -math.pi:
       mapped_angles[i] += TWO_PI
   return mapped_angles
+
+
+
 
 
 class Robotable(object):
@@ -96,7 +108,7 @@ class Robotable(object):
     self._self_collision_enabled = self_collision_enabled
     self._motor_velocity_limit = motor_velocity_limit
     self._pd_control_enabled = pd_control_enabled
-    self._motor_direction = [1,1,1,1, 1,1,1]
+    self._motor_direction = [1,1,1,1, 1,1,1,1]
     self._observed_motor_torques = np.zeros(self.num_motors)
     self._applied_motor_torques = np.zeros(self.num_motors)
     self._max_force = 3.5
@@ -111,9 +123,18 @@ class Robotable(object):
     self._gripper_link_ids = [-1]
     self._leg_link_ids = []
     self._motor_link_ids = []
+    self._neck_link_ids = []
     self._torque_control_enabled = torque_control_enabled
     self._motor_overheat_protection = motor_overheat_protection
     self._on_rack = on_rack
+
+    self._end_effector_index = 7
+
+    self.viewMatrix = self._pybullet_client.computeViewMatrixFromYawPitchRoll(cameraTargetPosition = [0,0,0], distance = 0.3, yaw = 90, pitch = -90, roll = 0, upAxisIndex = 2) 
+    self.projectionMatrix = self._pybullet_client.computeProjectionMatrixFOV(fov = 120,aspect = 1,nearVal = 0.01,farVal = 10)
+
+
+ 
     if self._accurate_motor_model_enabled:
       self._kp = motor_kp
       self._kd = motor_kd
@@ -147,6 +168,7 @@ class Robotable(object):
 
   def _BuildJointNameToIdDict(self):
     num_joints = self._pybullet_client.getNumJoints(self.quadruped)
+    print (num_joints)
     self._joint_name_to_id = {}
     for i in range(num_joints):
       joint_info = self._pybullet_client.getJointInfo(self.quadruped, i)
@@ -169,14 +191,16 @@ class Robotable(object):
         self._chassis_link_ids.append(joint_id)
       elif _MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
-        #whatever
-      elif _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN.match(joint_id):
+      elif _GRIPPER_JOINT_0_MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
         self._gripper_link_ids.append(joint_id)
-      elif _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN.match(joint_id):
+      elif _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
         self._gripper_link_ids.append(joint_id)
-      elif _GRIPPER_JOINT_3_MOTOR_NAME_PATTERN.match(joint_id):
+      elif _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN.match(joint_name):
+        self._motor_link_ids.append(joint_id)
+        self._gripper_link_ids.append(joint_id)
+      elif _GRIPPER_JOINT_3_MOTOR_NAME_PATTERN.match(joint_name):
         self._motor_link_ids.append(joint_id)
         self._gripper_link_ids.append(joint_id)
 
@@ -228,12 +252,12 @@ class Robotable(object):
     if reload_urdf:
       if self._self_collision_enabled:
         self.quadruped = self._pybullet_client.loadURDF(
-            "%s/robot.urdf" % self._urdf_root,
+            "%s/robotable_with_gripper.urdf" % self._urdf_root,
             init_position,
             useFixedBase=self._on_rack,
             flags=self._pybullet_client.URDF_USE_SELF_COLLISION)
       else:
-        self.quadruped = self._pybullet_client.loadURDF("%s/robot.urdf" %
+        self.quadruped = self._pybullet_client.loadURDF("%s/robotable_with_gripper.urdf" %
                                                         self._urdf_root,
                                                         init_position,
                                                         useFixedBase=self._on_rack)
@@ -321,26 +345,28 @@ class Robotable(object):
                                                                    "_leg_joint"],
                                             self._motor_direction[leg_id] * 0, #* half_pi,
                                             targetVelocity=0)
+      #print(leg_position)
 
     else:
-      neck_number = leg_id - 4
+      neck_number = leg_id - NUM_LOCO_MOTORS
       self._pybullet_client.resetJointState(self.quadruped,
-                                            self._joint_name_to_id["gripper_joint_" + neck_number],
+                                            self._joint_name_to_id["gripper_joint_" + str(neck_number)],
                                             self._motor_direction[leg_id] * half_pi/2,  # * half_pi,
                                             targetVelocity=0)
+      #print(neck_number)
 
-    if self._accurate_motor_model_enabled or self._pd_control_enabled:
+#    if self._accurate_motor_model_enabled or self._pd_control_enabled:
       # Disable the default motor in pybullet.
-      self._pybullet_client.setJointMotorControl2(
-          bodyIndex=self.quadruped,
-          jointIndex=(self._joint_name_to_id["motor_" + leg_position + "_leg_joint"]),
-          controlMode=self._pybullet_client.VELOCITY_CONTROL,
-          targetVelocity=0,
-          force=knee_friction_force)
-
-    else:
-      self._SetDesiredMotorAngleByName("motor_" + leg_position + "_leg_joint",
-                                       self._motor_direction[leg_id] * 0) #half_pi)
+#      self._pybullet_client.setJointMotorControl2(
+#          bodyIndex=self.quadruped,
+#          jointIndex=(self._joint_name_to_id["motor_" + leg_position + "_leg_joint"]),
+#          controlMode=self._pybullet_client.VELOCITY_CONTROL,
+#          targetVelocity=0,
+#          force=knee_friction_force)
+#
+#    else:
+#      self._SetDesiredMotorAngleByName("motor_" + leg_position + "_leg_joint",
+#                                       self._motor_direction[leg_id] * 0) #half_pi)
 
   def GetBasePosition(self):
     """Get the position of minitaur's base.
@@ -713,6 +739,16 @@ class Robotable(object):
     observation.extend(self.GetTrueMotorTorques())
     observation.extend(self.GetTrueBaseOrientation())
     observation.extend(self.GetTrueBaseRollPitchYawRate())
+
+    state = self._pybullet_client.getLinkState(self.quadruped, self._end_effector_index)
+    pos = state[0]
+    orn = state[1]
+
+    #print(pos)
+    #print(orn)
+    observation.extend(pos)
+    observation.extend(orn)
+
     return observation
 
   def ReceiveObservation(self):
@@ -723,6 +759,12 @@ class Robotable(object):
     """
     self._observation_history.appendleft(self.GetTrueObservation())
     self._control_observation = self._GetControlObservation()
+
+    self._getSceneObservation()
+
+#    print (self._control_observation) 
+    #print (self._getSceneObservation())
+    #print (self.GetTrueBaseRollPitchYawRate())
 
   def _GetDelayedObservation(self, latency):
     """Get observation that is delayed by the amount specified in latency.
@@ -836,3 +878,67 @@ class Robotable(object):
   @property
   def chassis_link_ids(self):
     return self._chassis_link_ids
+
+
+  def GetTrueEndEffectorPosition(self):
+
+    state = self._pybullet_client.getLinkState(self.quadruped, self._end_effector_index)
+    pos = state[0]
+
+    return pos
+
+  def GetTrueEndEffectorOrientation(self):
+
+    state = self._pybullet_client.getLinkState(self.quadruped, self._end_effector_index)
+    orn = state[1]
+
+    return orn
+
+  
+  # adapted from ur5pybullet 	
+  def gripper_camera(self, end_effector_state):
+    pos = end_effector_state[0] 
+    ori = end_effector_state[1]
+
+
+
+    #translate a bit higher
+    pos = list(pos) 
+    pos[2] += 0.3
+#    pos = tuple(pos)
+
+    rot_matrix = self._pybullet_client.getMatrixFromQuaternion(ori)
+    rot_matrix = np.array(rot_matrix).reshape(3, 3)
+ 
+
+   # Initial vectors
+    #init_camera_vector = (0, 0, 1) # x-axis
+    init_camera_vector = (0, 0, -1) # x-axis
+    init_up_vector = (0, 1, 0) # y-axis
+
+
+    # Rotated vectors
+
+    camera_vector = rot_matrix.dot(init_camera_vector)
+    up_vector = rot_matrix.dot(init_up_vector)
+
+
+
+    #end_effector_length_vector = (0.618, 0, 0)
+    #camera_vector = rot_matrix.dot(end_effector_length_vector)
+
+    pos = [pos[0] + 0.5*camera_vector[0], pos[1] + 0.5*camera_vector[1], pos[2] + 0.5*camera_vector[2]]
+    pos = tuple(pos) 
+
+    self.view_matrix_gripper = self._pybullet_client.computeViewMatrix(pos, pos + 0.1 * camera_vector, up_vector) #why 0.1?
+    img = self._pybullet_client.getCameraImage(256, 256, self.view_matrix_gripper, self.projectionMatrix, shadow=0, flags = self._pybullet_client.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX, renderer=self._pybullet_client.ER_BULLET_HARDWARE_OPENGL)
+
+
+  def _getSceneObservation(self):
+    state = self._pybullet_client.getLinkState(self.quadruped, self._end_effector_index)
+    #euler = p.getEulerFromQuaternion(orn)
+
+    grip_img = self.gripper_camera(state)
+    return grip_img 
+
+

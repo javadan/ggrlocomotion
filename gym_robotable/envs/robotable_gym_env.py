@@ -5,6 +5,8 @@ Adapted from minitaur
 """
 import math
 import time
+from numpy.random import default_rng
+
 
 from threading import Lock
 lock = Lock()
@@ -14,6 +16,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
 
+
 import itertools
 import gym
 from gym import spaces
@@ -22,14 +25,17 @@ import numpy as np
 import pybullet
 import pybullet_utils.bullet_client as bc
 import pybullet_data
-from gym_robotable.envs import robotable 
+from gym_robotable.envs import robotable_with_gripper #robotable 
 from gym_robotable.envs import logging 
 from gym_robotable.envs import logging_pb2 
 from gym_robotable.envs import motor
+from gym_robotable.envs import transform_utils
+from gym_robotable.envs import transformations
+
 from pkg_resources import parse_version
 
 NUM_LOCO_MOTORS = 4
-NUM_GRIPPER_MOTORS = 3
+NUM_GRIPPER_MOTORS = 4
 MOTOR_ANGLE_OBSERVATION_INDEX = 0
 MOTOR_VELOCITY_OBSERVATION_INDEX = MOTOR_ANGLE_OBSERVATION_INDEX + NUM_LOCO_MOTORS + NUM_GRIPPER_MOTORS
 MOTOR_TORQUE_OBSERVATION_INDEX = MOTOR_VELOCITY_OBSERVATION_INDEX + NUM_LOCO_MOTORS + NUM_GRIPPER_MOTORS
@@ -43,7 +49,7 @@ DEFAULT_URDF_VERSION = "robot"
 NUM_SIMULATION_ITERATION_STEPS = 600
 
 URDF_VERSION_MAP = {
-    DEFAULT_URDF_VERSION: robotable.Robotable
+    DEFAULT_URDF_VERSION: robotable_with_gripper.Robotable
 }
 
 gui = 0
@@ -109,8 +115,8 @@ class RobotableEnv(gym.Env):
                env_randomizer=None,
                forward_reward_cap=float("inf"),
                reflection=False,
-               #log_path=None):
-               log_path="/media/chrx/0FEC49A4317DA4DA/walkinglogs"):
+               log_path=None):
+               #log_path="/media/chrx/0FEC49A4317DA4DA/walkinglogs"):
     """Initialize the robotable gym environment.
 
     Args:
@@ -187,6 +193,8 @@ class RobotableEnv(gym.Env):
     # TODO(b/73829334): Fix the value of self._num_bullet_solver_iterations.
     self._num_bullet_solver_iterations = int(NUM_SIMULATION_ITERATION_STEPS / self._action_repeat)
     self._urdf_root = urdf_root
+
+    print (self._urdf_root)
     self._self_collision_enabled = self_collision_enabled
     self._motor_velocity_limit = motor_velocity_limit
     self._observation = []
@@ -242,6 +250,8 @@ class RobotableEnv(gym.Env):
       # self._pybullet_client = bc.BulletClient()
         self._pybullet_client = bc.BulletClient(connection_mode=pybullet.DIRECT)
 
+
+
     if self._urdf_version is None:
       self._urdf_version = DEFAULT_URDF_VERSION
     self._pybullet_client.setPhysicsEngineParameter(enableConeFriction=0)
@@ -249,7 +259,7 @@ class RobotableEnv(gym.Env):
     self.reset()
     observation_high = (self._get_observation_upper_bound() + OBSERVATION_EPS)
     observation_low = (self._get_observation_lower_bound() - OBSERVATION_EPS)
-    action_dim = NUM_LOCO_MOTORS
+    action_dim = NUM_LOCO_MOTORS + NUM_GRIPPER_MOTORS
     action_high = np.array([self._action_bound] * action_dim)
     self.action_space = spaces.Box(-action_high, action_high)
     self.observation_space = spaces.Box(observation_low, observation_high)
@@ -265,11 +275,11 @@ class RobotableEnv(gym.Env):
     self._env_randomizers.append(env_randomizer)
 
   def reset(self, initial_motor_angles=None, reset_duration=1.0):
-    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 0)
-    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_GUI, 0)
-    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
-    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
-    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 1)
+    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_GUI, 1)
+    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 1)
+    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 1)
+    self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RGB_BUFFER_PREVIEW, 1)
     if self._env_step_counter > 0:
       self.logging.save_episode(self._episode_proto)
     self._episode_proto = logging_pb2.RobotableEpisode()
@@ -280,6 +290,29 @@ class RobotableEnv(gym.Env):
           numSolverIterations=int(self._num_bullet_solver_iterations))
       self._pybullet_client.setTimeStep(self._time_step)
       self._ground_id = self._pybullet_client.loadURDF("%s/plane.urdf" % self._urdf_root)
+
+      #need chicken and egg in the scene i guess
+ #     self._chicken_mesh = self._pybullet_client.loadURDF("%s/chicken.urdf" % self._urdf_root, globalScaling=0.2)
+      
+      self.rng = default_rng()
+      egg_position = np.r_[self.rng.uniform(-20, 20, 2), 0.1]
+      egg_orientation = transformations.random_quaternion(self.rng.random(3))
+      self._egg_mesh = self._pybullet_client.loadURDF("%s/egg.urdf" % self._urdf_root, egg_position, egg_orientation, globalScaling=0.1)
+      
+      
+#      chicken_state = self._pybullet_client.getLinkState(self._chicken_mesh, 0);
+#      egg_state = self._pybullet_client.getLinkState(self._egg_mesh, 0);
+    
+#      chicken_pos = chicken_state[0] 
+#      chicken_ori = chicken_state[1]
+
+      #translate a bit higher
+#      chicken_pos = list(chicken_pos) 
+#      chicken_pos[1] += 3.3
+#      chicken_pos = tuple(chicken_pos)
+
+
+
       if (self._reflection):
         self._pybullet_client.changeVisualShape(self._ground_id, -1, rgbaColor=[1, 1, 1, 0.8])
         self._pybullet_client.configureDebugVisualizer(
@@ -313,6 +346,11 @@ class RobotableEnv(gym.Env):
                         default_motor_angles=initial_motor_angles,
                         reset_time=reset_duration)
 
+    self.end_effector_pos = self.robotable.GetTrueEndEffectorPosition()
+    self.end_effector_orn = self.robotable.GetTrueEndEffectorOrientation()
+
+    
+
     # Loop over all env randomizers.
     for env_randomizer in self._env_randomizers:
       env_randomizer.randomize_env(self)
@@ -335,10 +373,12 @@ class RobotableEnv(gym.Env):
   def _transform_action_to_motor_command(self, action):
     if self._leg_model_enabled:
       for i, action_component in enumerate(action):
-        # print(action_component)
         # print(-self._action_bound - ACTION_EPS)
         # print(self._action_bound + ACTION_EPS)
-
+        #print(action_component)
+        #if  i == 2:
+        #   print(action_component)
+        #   time.sleep(0.05) 
         action_component = np.clip(action_component, -1.0, 1.0)
 
         if not (-self._action_bound - ACTION_EPS <= action_component <= self._action_bound + ACTION_EPS):
@@ -681,3 +721,26 @@ class RobotableEnv(gym.Env):
   @property
   def env_step_counter(self):
     return self._env_step_counter
+
+
+
+  def translation_matrix(direction):
+    """Return matrix to translate by direction vector.
+    >>> v = numpy.random.random(3) - 0.5
+    >>> numpy.allclose(v, translation_matrix(v)[:3, 3])
+    True
+    """
+    M = numpy.identity(4)
+    M[:3, 3] = direction[:3]
+    return M
+
+
+  def translation_from_matrix(matrix):
+    """Return translation vector from translation matrix.
+    >>> v0 = numpy.random.random(3) - 0.5
+    >>> v1 = translation_from_matrix(translation_matrix(v0))
+    >>> numpy.allclose(v0, v1)
+    True
+    """
+    return numpy.array(matrix, copy=False)[:3, 3].copy()
+
