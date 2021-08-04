@@ -244,7 +244,11 @@
     <child link="neck_1"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-1.57." upper="1.57" velocity="1000.0"/>
+<<<<<<< HEAD
     <origin rpy="2.7 0 0" xyz="0 0 0"/>
+=======
+    <origin rpy="3 0 0" xyz="0 0 0"/>
+>>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
   </joint>
 
 
@@ -279,7 +283,11 @@
     <child link="neck_2"/>
     <axis xyz="1 0 0"/>
     <limit effort="10.0" lower="-1.57." upper="1.57" velocity="1000.0"/>
+<<<<<<< HEAD
     <origin rpy="-0.9 0 0" xyz="0 0 -1.718"/>
+=======
+    <origin rpy="-1 0 0" xyz="0 0 -1.718"/>
+>>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
   </joint>
 
 

@@ -35,11 +35,17 @@ MOTOR_NAMES = [
 ]
 
 
+<<<<<<< HEAD
 
 
 NUM_LOCO_MOTORS = 4
 NUM_GRIPPER_MOTORS = 4
 
+=======
+NUM_LOCO_MOTORS = 4
+NUM_GRIPPER_MOTORS = 4
+
+>>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 _GRIPPER_JOINT_0_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_0")
 _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_1")
 _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_2")
@@ -345,7 +351,11 @@ class Robotable(object):
                                                                    "_leg_joint"],
                                             self._motor_direction[leg_id] * 0, #* half_pi,
                                             targetVelocity=0)
+<<<<<<< HEAD
       #print(leg_position)
+=======
+      print(leg_position)
+>>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 
     else:
       neck_number = leg_id - NUM_LOCO_MOTORS
@@ -353,7 +363,11 @@ class Robotable(object):
                                             self._joint_name_to_id["gripper_joint_" + str(neck_number)],
                                             self._motor_direction[leg_id] * half_pi/2,  # * half_pi,
                                             targetVelocity=0)
+<<<<<<< HEAD
       #print(neck_number)
+=======
+      print(neck_number)
+>>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 
 #    if self._accurate_motor_model_enabled or self._pd_control_enabled:
       # Disable the default motor in pybullet.
