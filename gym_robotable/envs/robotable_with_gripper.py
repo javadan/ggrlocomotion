@@ -12,10 +12,12 @@ import collections
 import copy
 import math
 import re
+import time
 
 import numpy as np
 from gym_robotable.envs import motor
 from gym_robotable.envs import transformations
+from PIL import Image
 
 INIT_POSITION = [0, 0, .15]
 INIT_RACK_POSITION = [0, 0, 1]
@@ -35,17 +37,11 @@ MOTOR_NAMES = [
 ]
 
 
-<<<<<<< HEAD
 
 
 NUM_LOCO_MOTORS = 4
 NUM_GRIPPER_MOTORS = 4
 
-=======
-NUM_LOCO_MOTORS = 4
-NUM_GRIPPER_MOTORS = 4
-
->>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 _GRIPPER_JOINT_0_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_0")
 _GRIPPER_JOINT_1_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_1")
 _GRIPPER_JOINT_2_MOTOR_NAME_PATTERN = re.compile(r"gripper_joint_2")
@@ -351,11 +347,7 @@ class Robotable(object):
                                                                    "_leg_joint"],
                                             self._motor_direction[leg_id] * 0, #* half_pi,
                                             targetVelocity=0)
-<<<<<<< HEAD
       #print(leg_position)
-=======
-      print(leg_position)
->>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 
     else:
       neck_number = leg_id - NUM_LOCO_MOTORS
@@ -363,11 +355,7 @@ class Robotable(object):
                                             self._joint_name_to_id["gripper_joint_" + str(neck_number)],
                                             self._motor_direction[leg_id] * half_pi/2,  # * half_pi,
                                             targetVelocity=0)
-<<<<<<< HEAD
       #print(neck_number)
-=======
-      print(neck_number)
->>>>>>> f7caac8e78d1c1dc2ebf7c3eae77fbcefab10bd7
 
 #    if self._accurate_motor_model_enabled or self._pd_control_enabled:
       # Disable the default motor in pybullet.
@@ -945,7 +933,34 @@ class Robotable(object):
     pos = tuple(pos) 
 
     self.view_matrix_gripper = self._pybullet_client.computeViewMatrix(pos, pos + 0.1 * camera_vector, up_vector) #why 0.1?
-    img = self._pybullet_client.getCameraImage(256, 256, self.view_matrix_gripper, self.projectionMatrix, shadow=0, flags = self._pybullet_client.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX, renderer=self._pybullet_client.ER_BULLET_HARDWARE_OPENGL)
+    img_arr = self._pybullet_client.getCameraImage(256, 256, self.view_matrix_gripper, self.projectionMatrix, shadow=0, flags = self._pybullet_client.ER_TINY_RENDERER, renderer=self._pybullet_client.ER_BULLET_HARDWARE_OPENGL)
+    width, height, rgba, depth, mask = img_arr
+
+#    if (self._step_counter % 30 == 0 and self._step_counter != 0):
+#        print(f"rgba shape={rgba.shape}, dtype={rgba.dtype}")
+        #print(f"depth shape={depth.shape}, dtype={depth.dtype}, as values from 0.0 (near) to 1.0 (far)")
+        #depth = Image.fromarray((depth*255).astype('uint8'))
+#        print(f"mask shape={mask.shape}, dtype={mask.dtype}, as unique values from 0 to N-1 entities, and -1 as None")
+    seg = Image.fromarray(np.interp(mask, (-1, mask.max()), (0, 255)).astype('uint8'))
+    pix = np.unique(np.array(seg))
+ 
+    if 170 in pix:  #egg detected
+        #seg_link code maybe applicable to changing this to 1
+                
+
+        rgba = Image.fromarray(rgba, 'RGBA')
+
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+
+        rgb = Image.new("RGB", rgba.size, (255, 255, 255))
+        rgb.paste(rgba, mask=rgba.split()[3]) # 3 is the alpha channel
+
+	#uncomment to save dataset
+        #rgb.save("rgb" + timestr + "-" + str(self._step_counter) + ".jpg")
+
+        #depth.save("depth" + timestr + "-" + str(self._step_counter) + ".jpg")
+        #seg.save("seg" + timestr + "-" + str(self._step_counter) + ".png")
+
 
 
   def _getSceneObservation(self):
