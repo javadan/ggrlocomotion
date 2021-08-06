@@ -295,7 +295,7 @@ class RobotableEnv(gym.Env):
  #     self._chicken_mesh = self._pybullet_client.loadURDF("%s/chicken.urdf" % self._urdf_root, globalScaling=0.2)
       
       self.rng = default_rng()
-      egg_position = np.r_[self.rng.uniform(-20, 20, 2), 0.1]
+      egg_position = np.r_[self.rng.uniform(0, 5, 2), 0.1]
       egg_orientation = transformations.random_quaternion(self.rng.random(3))
       self._egg_mesh = self._pybullet_client.loadURDF("%s/egg.urdf" % self._urdf_root, egg_position, egg_orientation, globalScaling=0.1)
       
