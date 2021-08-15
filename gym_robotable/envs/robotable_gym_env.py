@@ -6,7 +6,8 @@ Adapted from minitaur
 import math
 import time
 from numpy.random import default_rng
-
+import glob
+from datetime import datetime, date
 
 from threading import Lock
 lock = Lock()
@@ -274,6 +275,13 @@ class RobotableEnv(gym.Env):
   def add_env_randomizer(self, env_randomizer):
     self._env_randomizers.append(env_randomizer)
 
+
+  def get_random_texture(self):
+    texture_paths = glob.glob(os.path.join('../dtd/images', '**', '*.jpg'), recursive=True)
+    random_texture_path = texture_paths[self.rng.integers(low=0, high=(len(texture_paths) - 1), size=1)[0]]
+    textureId = self._pybullet_client.loadTexture(random_texture_path)
+    return textureId
+
   def reset(self, initial_motor_angles=None, reset_duration=1.0):
     self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 1)
     self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_GUI, 1)
@@ -289,29 +297,48 @@ class RobotableEnv(gym.Env):
       self._pybullet_client.setPhysicsEngineParameter(
           numSolverIterations=int(self._num_bullet_solver_iterations))
       self._pybullet_client.setTimeStep(self._time_step)
+
+      #randomizer
+      now_time = datetime.now().time()  # get time only
+      current_time_str = now_time.strftime("%H%M")
+      current_time_int = int(current_time_str)
+      self.rng = default_rng(seed=current_time_int)
+
+      #load random plane texture
+
       self._ground_id = self._pybullet_client.loadURDF("%s/plane.urdf" % self._urdf_root)
+      textureId = self.get_random_texture()
+      self._pybullet_client.changeVisualShape(self._ground_id, -1, textureUniqueId=textureId)
+
+
 
       #need chicken and egg in the scene i guess
- #     self._chicken_mesh = self._pybullet_client.loadURDF("%s/chicken.urdf" % self._urdf_root, globalScaling=0.2)
-      
-      self.rng = default_rng()
-      egg_position = np.r_[self.rng.uniform(0, 5, 2), 0.1]
+      chicken_scaling = self.rng.uniform(0.15, 0.3)
+      chicken_position = np.r_[self.rng.uniform(-5,5), self.rng.uniform(2,17), self.rng.uniform(0.2, 0.3)]
+      chicken_colour = [self.rng.uniform(0,1), self.rng.uniform(0,1), self.rng.uniform(0, 1), 1]
+       
+      egg_scaling = self.rng.uniform(0.05, 0.3)
+      egg_position = np.r_[self.rng.uniform(-5,5), self.rng.uniform(2,17), self.rng.uniform(0.2, 0.3)]
       egg_orientation = transformations.random_quaternion(self.rng.random(3))
-      self._egg_mesh = self._pybullet_client.loadURDF("%s/egg.urdf" % self._urdf_root, egg_position, egg_orientation, globalScaling=0.1)
+      egg_colour = [self.rng.uniform(0,1), self.rng.uniform(0,1), self.rng.uniform(0, 1), 1]
       
+      self._chicken_mesh = self._pybullet_client.loadURDF("%s/chicken.urdf" % self._urdf_root, chicken_position, globalScaling=chicken_scaling)
+      self._egg_mesh = self._pybullet_client.loadURDF("%s/egg.urdf" % self._urdf_root, egg_position, egg_orientation, globalScaling=egg_scaling)
       
-#      chicken_state = self._pybullet_client.getLinkState(self._chicken_mesh, 0);
+      self._pybullet_client.changeVisualShape(self._chicken_mesh, -1, rgbaColor=chicken_colour)
+      self._pybullet_client.changeVisualShape(self._egg_mesh, -1, rgbaColor=egg_colour)
+      
+      #chicken_state = self._pybullet_client.getLinkState(self._chicken_mesh, 0);
 #      egg_state = self._pybullet_client.getLinkState(self._egg_mesh, 0);
-    
+#    
 #      chicken_pos = chicken_state[0] 
 #      chicken_ori = chicken_state[1]
-
-      #translate a bit higher
+#
+#      #translate a bit higher
 #      chicken_pos = list(chicken_pos) 
 #      chicken_pos[1] += 3.3
 #      chicken_pos = tuple(chicken_pos)
-
-
+#
 
       if (self._reflection):
         self._pybullet_client.changeVisualShape(self._ground_id, -1, rgbaColor=[1, 1, 1, 0.8])
