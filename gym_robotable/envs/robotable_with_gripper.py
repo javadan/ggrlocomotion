@@ -941,12 +941,23 @@ class Robotable(object):
         #print(f"depth shape={depth.shape}, dtype={depth.dtype}, as values from 0.0 (near) to 1.0 (far)")
         #depth = Image.fromarray((depth*255).astype('uint8'))
 #        print(f"mask shape={mask.shape}, dtype={mask.dtype}, as unique values from 0 to N-1 entities, and -1 as None")
-    seg = Image.fromarray(np.interp(mask, (-1, mask.max()), (0, 255)).astype('uint8'))
+
+
+
+    seg = Image.fromarray(mask.astype('uint8'))
+    
+
+
+    #seg = Image.fromarray(np.interp(mask, (-1, mask.max()), (0, 255)).astype('uint8'))
     pix = np.unique(np.array(seg))
- 
-    if 170 in pix:  #egg detected
-        #seg_link code maybe applicable to changing this to 1
-                
+    print(pix) 
+    if 1 in pix:  #egg detected
+#[  0  63 127 191 255] w interpolation.
+#
+#[  0   1   2   3 255]          
+
+        depth = Image.fromarray((depth*255).astype('uint8'))
+
 
         rgba = Image.fromarray(rgba, 'RGBA')
 
@@ -956,10 +967,13 @@ class Robotable(object):
         rgb.paste(rgba, mask=rgba.split()[3]) # 3 is the alpha channel
 
 	#uncomment to save dataset
-        #rgb.save("rgb" + timestr + "-" + str(self._step_counter) + ".jpg")
+        rgb.save("cnn/rgb" + timestr + "-" + str(self._step_counter) + ".jpg")
+        
+        #save depth
+        depth.save("cnn/dep" + timestr + "-" + str(self._step_counter) + ".jpg")
 
         #depth.save("depth" + timestr + "-" + str(self._step_counter) + ".jpg")
-        #seg.save("seg" + timestr + "-" + str(self._step_counter) + ".png")
+        seg.save("cnn/seg" + timestr + "-" + str(self._step_counter) + ".png")
 
 
 
