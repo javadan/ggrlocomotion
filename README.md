@@ -1,4 +1,4 @@
-Gallus Gallus Roboticus locomotion code 
+#Gallus Gallus Roboticus locomotion training 
 
 Copyleft License
 
