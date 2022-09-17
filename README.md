@@ -1,4 +1,4 @@
-#Gallus Gallus Roboticus locomotion training 
+# Gallus Gallus Roboticus locomotion training 
 
 Copyleft License
 
