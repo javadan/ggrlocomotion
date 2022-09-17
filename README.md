@@ -2,7 +2,7 @@
 
 Copyleft License
 
-[mirandamoss.com/gallusgallusroboticus](mirandamoss.com/gallusgallusroboticus)
+[mirandamoss.com/gallusgallusroboticus](www.mirandamoss.com/gallusgallusroboticus)
 
 Early implementation of Sim2Real for the quadruped 'Robotable', using pyBullet.  
 Was used to evolve robot locomotion in simulation, and extract angles for servos.
